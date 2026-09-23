@@ -5,3 +5,6 @@ var
 coverage
 *.zip
 certs
+.gitignore
+README.md
+Dockerfile
