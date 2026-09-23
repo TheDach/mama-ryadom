@@ -1,0 +1,10 @@
+node_modules/
+var/*
+!var/.gitkeep
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+release/
+certs/

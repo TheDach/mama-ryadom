@@ -1,0 +1,100 @@
+schema_version: "1.0"
+solution: mama-ryadom
+base_url: "https://REPLACE-WITH-YOUR-DOMAIN"
+configuration_note: "Заполнить после развёртывания. Формат кейс не детализирует; согласуйте схему с платформой оценки."
+authentication:
+  role: user
+  method: "POST /api/auth с initData из MAX; использовать полученный token как Bearer"
+  local_demo: "DEMO_MODE=true: POST /api/auth с телом {demo: true}; каждый вход создаёт отдельный тестовый профиль"
+checks:
+  - name: health
+    method: GET
+    path: /api/health
+    role: public
+    parameters: {}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [status, version]
+      values: {status: ok}
+  - name: authentication
+    method: POST
+    path: /api/auth
+    role: user
+    parameters:
+      body: {initData: "SIGNED_MAX_INIT_DATA"}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [token, expiresIn]
+  - name: state
+    method: GET
+    path: /api/state
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [profile, benefits, version, settings, tracking, reminders]
+  - name: profile
+    method: PUT
+    path: /api/profile
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body:
+        version: "CURRENT_VERSION_FROM_STATE"
+        consent: true
+        profile:
+          stage: pregnant
+          firstChild: "yes"
+          children: "1"
+          employment: employed
+          income: low
+          citizenship: "yes"
+          registration: permanent
+          received: []
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [profile, benefits, next, version]
+  - name: tracker
+    method: PUT
+    path: /api/tracking/b01
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body: {status: planned, version: "CURRENT_VERSION_FROM_STATE"}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [tracking, version]
+  - name: settings
+    method: PUT
+    path: /api/profile
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body:
+        version: "CURRENT_VERSION_FROM_STATE"
+        settings: {unfinished: true}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [settings, version]
+  - name: reminder
+    method: POST
+    path: /api/reminders
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body:
+        version: "CURRENT_VERSION_FROM_STATE"
+        benefitId: b01
+        kind: unfinished
+        dueAt: "FUTURE_ISO_DATETIME_WITH_TIMEZONE"
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [reminders, version]

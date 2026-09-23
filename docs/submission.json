@@ -1,0 +1,9 @@
+{
+  "team": "",
+  "botUrl": "",
+  "apiUrl": "",
+  "repositoryOrArchive": "",
+  "checksumOrCommit": "",
+  "access": "Вход через MAX; тестовые логин и пароль не используются. Для локального demo — кнопка входа.",
+  "verification": "MAX /start → согласие → 8 вопросов → результат → следующий шаг → mini app → карточка → личный статус"
+}

@@ -1,0 +1,12 @@
+import {readFileSync} from 'node:fs';
+import {configuration} from '../src/config.js';
+const config=configuration();
+const failures=[];
+if(!config.token)failures.push('Заполните BOT_TOKEN');
+if(!config.botUsername)failures.push('Заполните BOT_USERNAME');
+if(config.demo)failures.push('Перед публикацией установите DEMO_MODE=false');
+if(config.botMode!=='webhook')failures.push('Для публикации используйте BOT_MODE=webhook');
+if(!config.publicUrl.startsWith('https://'))failures.push('Укажите публичный HTTPS PUBLIC_URL');
+const submission=JSON.parse(readFileSync('docs/submission.json'));
+for(const key of ['botUrl','apiUrl','repositoryOrArchive','checksumOrCommit','team'])if(!submission[key])failures.push('Заполните docs/submission.json: '+key);
+if(failures.length){console.error(failures.join('\n'));process.exitCode=1;}else console.log('Конфигурация заполнена. Пройдите ручную проверку MAX из docs/JUDGE-CHECKLIST.md.');

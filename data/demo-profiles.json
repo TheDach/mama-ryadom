@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Беременная работающая",
+    "profile": {
+      "stage": "pregnant",
+      "firstChild": "yes",
+      "children": "1",
+      "employment": "employed",
+      "income": "low",
+      "citizenship": "yes",
+      "registration": "permanent",
+      "received": []
+    }
+  },
+  {
+    "name": "Мама младенца, неизвестный доход",
+    "profile": {
+      "stage": "under18",
+      "firstChild": "yes",
+      "children": "1",
+      "employment": "unemployed",
+      "income": "unknown",
+      "citizenship": "yes",
+      "registration": "temporary",
+      "received": [
+        "capital"
+      ]
+    }
+  }
+]

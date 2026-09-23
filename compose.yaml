@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      DB_PATH: /app/var/mama.sqlite
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - app-data:/app/var
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  app-data:

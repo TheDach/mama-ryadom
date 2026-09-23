@@ -1,0 +1,4 @@
+# Замените домен; Caddy запускается на том же хосте, что и Docker Compose.
+mama.example.org {
+    reverse_proxy 127.0.0.1:3000
+}
