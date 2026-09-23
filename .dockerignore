@@ -1,10 +1,10 @@
 .git
 node_modules
 var
-
+.evn
 coverage
 *.zip
-certs
+
 .gitignore
 README.md
 Dockerfile
