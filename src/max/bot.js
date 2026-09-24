@@ -1,7 +1,7 @@
 import {createHash, randomBytes} from 'node:crypto';
 import {questions, validateProfile} from '../domain/questions.js';
 import {disclosure, catalog} from '../services/catalog.js';
-const button=(text,payload)=>({type:'callback',text,payload});
+const button=(text,payload)=>({type:'message',text});
 const message=(text,buttons=[])=>({text,attachments:buttons.length?[{type:'inline_keyboard',payload:{buttons}}]:[]});
 export class Bot {
   constructor(store,profiles,config){this.store=store;this.profiles=profiles;this.config=config;}
@@ -28,6 +28,28 @@ export class Bot {
     const list=onlyClarify?clarify:[...eligible,...clarify];
     return message(`Подбор готов\nМожно рассмотреть: ${eligible.length}\nТребует уточнения: ${clarify.length}\nОформлено: ${received.length}\n\n${list.length?list.slice(0,5).map(b=>`• ${b.title}`).join('\n'):'По введённым данным мы не нашли подходящих мер в демонстрационном наборе.'}\n\n${disclosure}`,[[button('Ближайший шаг','next'),button('Что уточнить','clarify')],[button('Изменить ответы','edit')],...this.app('Посмотреть подборку','benefits')]);
   }
+  textAction(value,u) {
+    const commands={
+      'Подобрать поддержку':'begin','Продолжить опрос':'begin','Изменить ответы':'edit',
+      'Обновить профиль':'edit','Согласна, продолжить':'consent','Назад':'start',
+      'Мои выплаты':'result','Как это работает':'help','Ближайший шаг':'next',
+      'Что уточнить':'clarify','Начать':'begin','Отмена':'start',
+      'Удалить мои данные':'delete_confirm','Продолжить':'begin'
+    };
+    if(value==='Напомнить завтра'){
+      const next=this.profiles.view(u.id).next;
+      return next?`remind:${next.id}`:'result';
+    }
+    if(value==='Готово' && u.questionnaire && u.questionIndex===questions.length-1)
+      return `a:${u.flow}:${u.questionIndex}:done`;
+    if(u.questionnaire){
+      const q=questions[u.questionIndex];
+      const option=q?.options.find(([,label])=>label===value.replace(/^✓ /,''));
+      if(option)return `a:${u.flow}:${u.questionIndex}:${option[0]}`;
+      if(value==='Назад' && u.questionIndex>0)return `back:${u.flow}:${u.questionIndex}`;
+    }
+    return commands[value] || value;
+  }
   handle(update) {
     const uid=update.callback?.user?.user_id ?? update.message?.sender?.user_id ?? update.user?.user_id;
     if(!Number.isSafeInteger(uid) || uid<=0 || update.message?.sender?.is_bot || update.message?.recipient?.chat_type && update.message.recipient.chat_type!=='dialog') return null;
@@ -38,7 +60,7 @@ export class Bot {
     return this.store.transaction(()=>{
       const id=`max:${uid}`, u=this.store.ensure(id);
       u.botConnected=true;u.botUserId=uid;
-      let action=update.callback?.payload || update.message?.body?.text || '/start';
+      let action=update.callback?.payload || this.textAction(update.message?.body?.text || '/start',{...u,id});
       const command={'/start':'start','/help':'help','/result':'result','/next':'next','/edit':'edit','/delete':'delete','/stop':'stop','/life':'life'};
       action=command[action] || action;
       let response;

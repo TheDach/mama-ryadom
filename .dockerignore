@@ -1,10 +1,7 @@
 .git
 node_modules
 var
-.evn
+.env
 coverage
 *.zip
 
-.gitignore
-README.md
-Dockerfile
