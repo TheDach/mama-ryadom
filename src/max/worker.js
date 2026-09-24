@@ -8,7 +8,7 @@ export async function poll(bot,client,store,signal) {
       for(const update of data.updates || []) await bot.deliver(bot.handle(update),client);
       if(data.marker!=null) store.setMeta('max_marker',data.marker);
       failures=0;
-    } catch(e){console.error('MAX: не удалось обработать события',e.status || 'network');failures++;await delay(Math.min(30000,1000*2**Math.min(failures,5)),null,{signal}).catch(()=>{});}
+    } catch(e){console.error('MAX: не удалось обработать события',e);failures++;await delay(Math.min(30000,1000*2**Math.min(failures,5)),null,{signal}).catch(()=>{});}
   }
 }
 export async function sendDueReminders(store,client,now=Date.now()) {
