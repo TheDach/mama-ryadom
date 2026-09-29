@@ -1,11 +1,20 @@
 services:
   app:
     build: .
-    env_file: .env
     environment:
       PORT: 3000
       HOST: 0.0.0.0
       DB_PATH: /app/var/mama.sqlite
+      DEMO_MODE: ${DEMO_MODE:-true}
+      BOT_TOKEN: ${BOT_TOKEN:-}
+      BOT_USERNAME: ${BOT_USERNAME:-}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+      MAX_API_URL: ${MAX_API_URL:-https://platform-api2.max.ru}
+      BOT_MODE: ${BOT_MODE:-polling}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      INIT_DATA_TTL_SECONDS: ${INIT_DATA_TTL_SECONDS:-3600}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-86400}
+      NODE_EXTRA_CA_CERTS: /app/certs/russian_bundle.crt
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

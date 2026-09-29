@@ -21,7 +21,7 @@ export function createApp({config,store,profiles,bot,client}) {
     let path='';
     try {
       const url=new URL(req.url,'http://localhost');path=url.pathname;
-      if(req.method==='GET' && path==='/api/health')return json(res,200,{status:'ok',version:'1.0.0'});
+      if(req.method==='GET' && path==='/api/health')return json(res,200,{status:'ok',version:'1.1.0'});
       if(path==='/api/max/webhook'){
         if(req.method!=='POST' || config.botMode!=='webhook' || !config.token)return json(res,404,{error:'Не найдено'});
         if(!equal(req.headers['x-max-bot-api-secret'],config.webhookSecret))return json(res,401,{error:'Нет доступа'});
@@ -45,6 +45,9 @@ export function createApp({config,store,profiles,bot,client}) {
         if(!id)return json(res,401,{error:'Сессия истекла. Откройте приложение заново.'});
         if(req.method==='GET' && path==='/api/state')return json(res,200,profiles.view(id));
         if(req.method==='DELETE' && path==='/api/state'){store.delete(id);return json(res,200,{deleted:true});}
+        if(req.method==='PUT' && path==='/api/questionnaire'){
+          const b=await body(req);return json(res,200,profiles.questionnaire(id,b,b.version));
+        }
         if(req.method==='PUT' && path==='/api/profile'){
           const b=await body(req);return json(res,200,profiles.update(id,b,b.version));
         }
@@ -59,7 +62,7 @@ export function createApp({config,store,profiles,bot,client}) {
         return json(res,404,{error:'Метод не найден'});
       }
       if(req.method!=='GET' && req.method!=='HEAD')return json(res,405,{error:'Метод не поддерживается'});
-      const files={'/app.js':['app.js','text/javascript'],'/styles.css':['styles.css','text/css'],'/favicon.svg':['favicon.svg','image/svg+xml']};
+      const files={'/questionnaire.js':['../src/domain/questionnaire.js','text/javascript'],'/app.js':['app.js','text/javascript'],'/styles.css':['styles.css','text/css'],'/favicon.svg':['favicon.svg','image/svg+xml']};
       const isRoute=path==='/' || /^\/(home|benefits|applications|profile|settings)(\/[-a-z0-9]+)?$/.test(path);
       const file=files[path] || (isRoute?['index.html','text/html']:null);
       if(!file)return json(res,404,{error:'Страница не найдена'});

@@ -16,13 +16,13 @@ test('bot complete flow and mini app share state; stale and duplicate callbacks 
  const update=payload=>({update_type:'message_callback',callback:{user:{user_id:42},callback_id:'cb'+ ++count,payload}});
  c.bot.handle({update_type:'bot_started',timestamp:1,user:{user_id:42}});
  c.bot.handle(update('begin'));c.bot.handle(update('consent'));
- for(const value of ['under18','yes','1','employed','low','yes','permanent','done']){const u=c.store.ensure('max:42');c.bot.handle(update(`a:${u.flow}:${u.questionIndex}:${value}`));}
- let v=c.profiles.view('max:42');assert.deepEqual(v.profile,profile);assert.equal(v.questionnaire,false);
+ for(const value of ['under18','under6','1_yes','employed','yes_permanent','low','done']){const u=c.store.ensure('max:42');c.bot.handle(update(`a:${u.flow}:${u.questionIndex}:${value}`));}
+ let v=c.profiles.view('max:42');assert.deepEqual(v.profile,{...profile,childAge:'under6'});assert.equal(v.questionnaire,false);
  c.profiles.track('max:42','b02','received',v.version);
  const result=c.bot.handle(update('result'));assert.match(result.message.text,/Оформлено: 1/);
  const stale=update('a:wrong:0:pregnant');c.bot.handle(stale);const before=c.store.ensure('max:42').version;c.bot.handle(stale);assert.equal(c.store.ensure('max:42').version,before);assert.equal(c.store.ensure('max:42').profile.stage,'under18');c.store.close();
 });
-test('bot draft resumes after start',()=>{const c=context();c.bot.handle({user:{user_id:42},timestamp:1});c.bot.handle({callback:{user:{user_id:42},callback_id:'x',payload:'consent'}});const u=c.store.ensure('max:42');c.bot.handle({callback:{user:{user_id:42},callback_id:'y',payload:`a:${u.flow}:0:pregnant`}});const r=c.bot.handle({callback:{user:{user_id:42},callback_id:'z',payload:'begin'}});assert.match(r.message.text,/Вопрос 2 из 8/);c.store.close();});
+test('bot draft resumes after start',()=>{const c=context();c.bot.handle({user:{user_id:42},timestamp:1});c.bot.handle({callback:{user:{user_id:42},callback_id:'x',payload:'consent'}});const u=c.store.ensure('max:42');c.bot.handle({callback:{user:{user_id:42},callback_id:'y',payload:`a:${u.flow}:0:pregnant`}});const r=c.bot.handle({callback:{user:{user_id:42},callback_id:'z',payload:'begin'}});assert.match(r.message.text,/Вопрос 2 из 7/);c.store.close();});
 test('SQLite persists profile across restart and rejects stale writes',()=>{const dir=mkdtempSync(join(tmpdir(),'mama-'));try{let s=new Store(join(dir,'data.sqlite'));let u=s.ensure('demo:x');u.profile=profile;s.save('demo:x',u);assert.throws(()=>s.save('demo:x',u),/изменились/);s.close();s=new Store(join(dir,'data.sqlite'));assert.deepEqual(s.ensure('demo:x').profile,profile);s.close();}finally{rmSync(dir,{recursive:true,force:true});}});
 test('reminders opt-in, retry and send once; delete revokes sessions',async()=>{const c=context();let u=c.store.ensure('max:42');u.botConnected=true;u.botUserId=42;u.settings.unfinished=true;u.reminders=[{id:'r',benefitId:'b01',kind:'unfinished',dueAt:new Date(0).toISOString(),attempts:0}];c.store.save('max:42',u);let calls=0;const client={send:async()=>{calls++;}};assert.equal(await sendDueReminders(c.store,client),1);assert.equal(await sendDueReminders(c.store,client),0);assert.equal(calls,1);const token=c.store.session('max:42',60);c.store.delete('max:42');assert.equal(c.store.authenticate(token),undefined);c.store.close();});
 test('disabled reminders not sent and errors scheduled for retry',async()=>{const c=context();let u=c.store.ensure('max:42');u.botConnected=true;u.botUserId=42;u.reminders=[{id:'r',benefitId:'b01',kind:'unfinished',dueAt:new Date(0).toISOString(),attempts:0}];c.store.save('max:42',u);const client={send:async()=>{throw new Error('offline');}};assert.equal(await sendDueReminders(c.store,client),0);u=c.store.ensure('max:42');u.settings.unfinished=true;c.store.save('max:42',u);await sendDueReminders(c.store,client);assert(c.store.ensure('max:42').reminders[0].retryAt>Date.now());c.store.close();});
@@ -49,3 +49,16 @@ test('production refuses demo authentication and invalid webhook secret',async()
 test('duplicate employer card updates canonical tracker',()=>{const c=context();const u=c.store.ensure('demo:x');let v=c.profiles.track('demo:x','b17','planned',u.version);assert.equal(v.tracking.b01.status,'planned');assert.equal(v.benefits.find(b=>b.id==='b17').tracking.status,'planned');c.store.close();});
 test('bot result changes after mini app profile update',()=>{const c=context();c.bot.handle({update_type:'bot_started',timestamp:1,user:{user_id:77}});let u=c.store.ensure('max:77');c.profiles.update('max:77',{profile:{...profile,stage:'pregnant'},consent:true},u.version);let next=c.bot.handle({callback:{user:{user_id:77},callback_id:'next-1',payload:'next'}});assert.match(next.message.text,/беременности и родам/);u=c.store.ensure('max:77');c.profiles.update('max:77',{profile},u.version);next=c.bot.handle({callback:{user:{user_id:77},callback_id:'next-2',payload:'next'}});assert.match(next.message.text,/при рождении ребёнка/);c.store.close();});
 test('reminder dates and opt-in validated',()=>{const c=context();let u=c.store.ensure('demo:x');assert.throws(()=>c.profiles.remind('demo:x',{benefitId:'b01',kind:'unfinished',dueAt:new Date(Date.now()+10000).toISOString()},u.version),/Включите/);assert.throws(()=>c.profiles.remind('demo:x',{benefitId:'b01',kind:'unfinished',dueAt:'yesterday'},u.version),/дату/);c.store.close();});
+
+test('questionnaire HTTP endpoint validates transitions and serves shared module',async()=>{
+ const c=context(),server=createApp({...c,client:{send:async()=>{}}});await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+ try{
+  const auth=await fetch(base+'/api/auth',{method:'POST',body:JSON.stringify({demo:true})}).then(r=>r.json());
+  const headers={'Content-Type':'application/json',Authorization:'Bearer '+auth.token};
+  let r=await fetch(base+'/api/questionnaire',{method:'PUT',headers,body:JSON.stringify({action:'start',consent:true,version:0})});assert.equal(r.status,200);let v=await r.json();
+  r=await fetch(base+'/api/questionnaire',{method:'PUT',headers,body:JSON.stringify({action:'answer',questionId:'stage',flow:v.flow,value:'under18',version:v.version})});assert.equal(r.status,200);v=await r.json();assert.equal(v.questionIndex,1);assert.equal(v.draft.stage,'under18');
+  assert.equal((await fetch(base+'/api/questionnaire',{method:'PUT',headers,body:JSON.stringify({action:'start',version:v.version,restart:'yes'})})).status,400);
+  assert.equal((await fetch(base+'/questionnaire.js')).status,200);
+  assert.equal((await fetch(base+'/src/storage/database.js')).status,404);
+ }finally{await new Promise(r=>server.close(r));c.store.close();}
+});

@@ -1,9 +1,10 @@
 {
   "team": "",
-  "botUrl": "",
-  "apiUrl": "",
-  "repositoryOrArchive": "",
+  "botUrl": "https://max.ru/t324_hakaton_max_bot",
+  "apiUrl": "https://mama-ryadom-production.up.railway.app",
+  "repositoryOrArchive": "https://github.com/TheDach/mama-ryadom",
   "checksumOrCommit": "",
-  "access": "Вход через MAX; тестовые логин и пароль не используются. Для локального demo — кнопка входа.",
-  "verification": "MAX /start → согласие → 8 вопросов → результат → следующий шаг → mini app → карточка → личный статус"
+  "access": "Вход через MAX. Отдельные логин и пароль не используются. Для локального демо доступна кнопка входа. Рабочие секреты предоставляются жюри отдельно.",
+  "verification": "/start, согласие, 6-7 шагов опроса, результат, ближайший шаг, мини-приложение, карточка, личная отметка",
+  "deploymentVerified": false
 }

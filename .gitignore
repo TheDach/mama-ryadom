@@ -8,3 +8,10 @@ coverage/
 .vscode/
 release/
 
+.env
+.env.*
+!.env.example
+*.sqlite*
+*.zip
+playwright-report/
+test-results/

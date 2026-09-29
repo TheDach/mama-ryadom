@@ -1,7 +1,7 @@
 schema_version: "1.0"
 solution: mama-ryadom
-base_url: "https://REPLACE-WITH-YOUR-DOMAIN"
-configuration_note: "Заполнить после развёртывания. Формат кейс не детализирует; согласуйте схему с платформой оценки."
+base_url: "https://mama-ryadom-production.up.railway.app"
+configuration_note: "Адрес из конфигурации проекта. Проверить после развёртывания версии 1.1.0. Формат кейс не детализирует; согласуйте схему с платформой оценки."
 authentication:
   role: user
   method: "POST /api/auth с initData из MAX; использовать полученный token как Bearer"
@@ -48,6 +48,7 @@ checks:
         consent: true
         profile:
           stage: pregnant
+          pregnancyWeeks: 30plus
           firstChild: "yes"
           children: "1"
           employment: employed
@@ -98,3 +99,27 @@ checks:
     response:
       content_type: application/json
       required: [reminders, version]
+  - name: questionnaire-start
+    method: PUT
+    path: /api/questionnaire
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body: {action: start, consent: true, version: "CURRENT_VERSION_FROM_STATE"}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [draft, questionnaire, questionIndex, flow, version]
+      values: {questionnaire: true, questionIndex: 0}
+  - name: questionnaire-answer
+    method: PUT
+    path: /api/questionnaire
+    role: user
+    parameters:
+      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      body: {action: answer, questionId: stage, flow: "CURRENT_FLOW_FROM_STATE", value: pregnant, version: "CURRENT_VERSION_FROM_STATE"}
+    expected_status_codes: [200]
+    response:
+      content_type: application/json
+      required: [draft, questionnaire, questionIndex, flow, version]
+      values: {questionnaire: true, questionIndex: 1}

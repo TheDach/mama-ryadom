@@ -18,9 +18,9 @@ export async function sendDueReminders(store,client,now=Date.now()) {
     for(const reminder of user.reminders) {
       if(reminder.sentAt || !user.settings[reminder.kind] || Date.parse(reminder.dueAt)>now || (reminder.retryAt || 0)>now) continue;
       const b=catalog.find(b=>b.id===reminder.benefitId);
-      const text=reminder.kind==='lifeEvents'?'Изменилась жизненная ситуация? /life — обновить профиль.':`Вы планировали проверить: ${b?.title || 'меру поддержки'}. /next — следующий шаг.`;
+      const text=reminder.kind==='lifeEvents'?'Изменилась жизненная ситуация? /life - обновить профиль.':`Вы планировали проверить: ${b?.title || 'меру поддержки'}. /next - следующий шаг.`;
       let success=false;
-      try {await client.send(user.botUserId,{text:`МАМА рядом\n${text}\nТестовые данные. /stop — отключить напоминания.`});success=true;sent++;}
+      try {await client.send(user.botUserId,{text:`МАМА рядом\n${text}\nТестовые данные. /stop - отключить напоминания.`});success=true;sent++;}
       catch {console.error('MAX: доставка напоминания отложена');}
       const current=store.ensure(user.id), r=current.reminders.find(x=>x.id===reminder.id);
       if(!r)continue;
