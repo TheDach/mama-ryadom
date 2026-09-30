@@ -31,7 +31,10 @@ def para(text, x, y, width=840, size=18, color=ink, leading=None):
 
 def page(number, label, title, subtitle=''):
     c.setFillColor(HexColor('#F3F5F7')); c.rect(0,0,W,H,fill=1,stroke=0)
-    para('МАМА рядом',44,H-41,400,16,green)
+    logo = ROOT / 'public/logo.png'
+    if logo.exists():
+        c.drawImage(str(logo),44,H-73,width=44,height=44,mask='auto',preserveAspectRatio=True)
+    para('МАМА рядом',98 if logo.exists() else 44,H-41,350,16,green)
     para(label.upper(),650,H-41,260,10,muted)
     para(title,44,H-107,870,32)
     if subtitle:para(subtitle,44,H-160,860,14,muted)

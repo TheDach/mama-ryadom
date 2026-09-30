@@ -31,7 +31,7 @@ export function validateProfile(value, partial = false) {
   return result;
 }
 export function validateSettings(s) {
-  if (!s || typeof s !== 'object' || Array.isArray(s) || Object.keys(s).some(k => !(k in defaultSettings))) throw new Error('Некорректные настройки');
+  if (!s || typeof s !== 'object' || Array.isArray(s) || Object.keys(s).some(k => !Object.hasOwn(defaultSettings,k))) throw new Error('Некорректные настройки');
   for (const [k,v] of Object.entries(s)) {
     if (k === 'theme' ? !['system','light','dark'].includes(v) : k === 'fontSize' ? !['small','normal','large'].includes(v) : typeof v !== 'boolean') throw new Error('Некорректное значение настройки');
   }

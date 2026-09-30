@@ -1,7 +1,8 @@
 schema_version: "1.0"
 solution: mama-ryadom
 base_url: "https://mama-ryadom-production.up.railway.app"
-configuration_note: "Адрес из конфигурации проекта. Проверить после развёртывания версии 1.1.0. Формат кейс не детализирует; согласуйте схему с платформой оценки."
+configuration_note: "value_from: подстановка значения с сохранением типа, см. docs/API-CHECK.md. Формальную схему оценки согласует организатор."
+runner: "npm run api:check -- --local; опубликованный API: npm run api:check -- https://mama-ryadom-production.up.railway.app с MAX_INIT_DATA"
 authentication:
   role: user
   method: "POST /api/auth с initData из MAX; использовать полученный token как Bearer"
@@ -22,7 +23,7 @@ checks:
     path: /api/auth
     role: user
     parameters:
-      body: {initData: "SIGNED_MAX_INIT_DATA"}
+      body: {initData: {value_from: env.MAX_INIT_DATA}}
     expected_status_codes: [200]
     response:
       content_type: application/json
@@ -32,7 +33,7 @@ checks:
     path: /api/state
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
     expected_status_codes: [200]
     response:
       content_type: application/json
@@ -42,9 +43,9 @@ checks:
     path: /api/profile
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
       body:
-        version: "CURRENT_VERSION_FROM_STATE"
+        version: {value_from: state.version, type: integer}
         consent: true
         profile:
           stage: pregnant
@@ -65,8 +66,8 @@ checks:
     path: /api/tracking/b01
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
-      body: {status: planned, version: "CURRENT_VERSION_FROM_STATE"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
+      body: {status: planned, version: {value_from: state.version, type: integer}}
     expected_status_codes: [200]
     response:
       content_type: application/json
@@ -76,9 +77,9 @@ checks:
     path: /api/profile
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
       body:
-        version: "CURRENT_VERSION_FROM_STATE"
+        version: {value_from: state.version, type: integer}
         settings: {unfinished: true}
     expected_status_codes: [200]
     response:
@@ -89,12 +90,12 @@ checks:
     path: /api/reminders
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
       body:
-        version: "CURRENT_VERSION_FROM_STATE"
+        version: {value_from: state.version, type: integer}
         benefitId: b01
         kind: unfinished
-        dueAt: "FUTURE_ISO_DATETIME_WITH_TIMEZONE"
+        dueAt: {value_from: future.dueAt, type: string}
     expected_status_codes: [200]
     response:
       content_type: application/json
@@ -104,8 +105,8 @@ checks:
     path: /api/questionnaire
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
-      body: {action: start, consent: true, version: "CURRENT_VERSION_FROM_STATE"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
+      body: {action: start, consent: true, version: {value_from: state.version, type: integer}}
     expected_status_codes: [200]
     response:
       content_type: application/json
@@ -116,8 +117,8 @@ checks:
     path: /api/questionnaire
     role: user
     parameters:
-      headers: {Authorization: "Bearer SESSION_TOKEN"}
-      body: {action: answer, questionId: stage, flow: "CURRENT_FLOW_FROM_STATE", value: pregnant, version: "CURRENT_VERSION_FROM_STATE"}
+      headers: {Authorization: {value_from: auth.token, prefix: "Bearer "}}
+      body: {action: answer, questionId: stage, flow: {value_from: state.flow, type: string}, value: pregnant, version: {value_from: state.version, type: integer}}
     expected_status_codes: [200]
     response:
       content_type: application/json

@@ -1,10 +1,17 @@
 import {setTimeout as delay} from 'node:timers/promises';
 import {catalog} from '../services/catalog.js';
+import {configureWebhook,updateTypes} from './setup.js';
+export async function setupWebhook(client,config,signal) {
+  while(!signal.aborted) {
+    try {await configureWebhook(client,config);console.log('MAX: webhook настроен, события кнопок включены');return;}
+    catch {console.error('MAX: настройка webhook отложена, повтор через 30 секунд');await delay(30000,null,{signal}).catch(()=>{});}
+  }
+}
 export async function poll(bot,client,store,signal) {
   let failures=0;
   while(!signal.aborted) {
     try {
-      const data=await client.request('GET','/updates',{timeout:25,limit:50,marker:store.meta('max_marker'),types:'bot_started,message_created,message_callback'});
+      const data=await client.request('GET','/updates',{timeout:25,limit:50,marker:store.meta('max_marker'),types:updateTypes.join(',')});
       for(const update of data.updates || []) await bot.deliver(bot.handle(update),client);
       if(data.marker!=null) store.setMeta('max_marker',data.marker);
       failures=0;
@@ -22,7 +29,7 @@ export async function sendDueReminders(store,client,now=Date.now()) {
       let success=false;
       try {await client.send(user.botUserId,{text:`МАМА рядом\n${text}\nТестовые данные. /stop - отключить напоминания.`});success=true;sent++;}
       catch {console.error('MAX: доставка напоминания отложена');}
-      const current=store.ensure(user.id), r=current.reminders.find(x=>x.id===reminder.id);
+      const current=store.find(user.id), r=current?.reminders.find(x=>x.id===reminder.id);
       if(!r)continue;
       r.attempts++;if(success)r.sentAt=new Date(now).toISOString();else r.retryAt=now+Math.min(86400000,60000*2**Math.min(r.attempts,10));
       store.save(user.id,current);

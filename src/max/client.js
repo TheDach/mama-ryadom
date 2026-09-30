@@ -7,7 +7,7 @@ export class MaxClient {
     const response=await this.fetcher(url,{method,headers:{Authorization:this.config.token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(path==='/updates'?40000:15000)});
     if (!response.ok) {const e=new Error(`MAX HTTP ${response.status}`);e.status=response.status;throw e;}
     const data=await response.json();
-    if(data.success===false) throw new Error('MAX отклонил запрос');
+    if(data.success===false) {const e=new Error('MAX отклонил запрос');e.status=400;throw e;}
     return data;
   }
   send(userId,message,callbackId) {

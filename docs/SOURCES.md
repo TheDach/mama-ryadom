@@ -24,7 +24,7 @@
 - [Получение обновлений](https://dev.max.ru/docs-api/methods/GET/updates)
 - [Webhook-подписки](https://dev.max.ru/docs-api/methods/POST/subscriptions)
 
-MAX Bridge загружается с `https://st.max.ru/js/max-web-app.js`. Это внешний компонент платформы. Код библиотеки не копируется в проект. LLM для подбора выплат не используется.
+MAX Bridge загружается с `https://st.max.ru/js/max-web-app.js`. Это внешний компонент платформы. Код библиотеки не копируется в проект.
 
 ## Инструменты
 

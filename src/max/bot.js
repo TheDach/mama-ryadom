@@ -49,11 +49,13 @@ export class Bot {
       if(option)return `a:${u.flow}:${u.questionIndex}:${option[0]}`;
       if(value==='Назад' && u.questionIndex>0)return `back:${u.flow}:${u.questionIndex}`;
     }
-    return commands[value] || value;
+    return Object.hasOwn(commands,value)?commands[value]:value;
   }
   handle(update) {
+    if(!update || typeof update!=='object' || Array.isArray(update))return null;
+    if(update.callback && (typeof update.callback.payload!=='string' || !update.callback.payload || typeof update.callback.callback_id!=='string'))return null;
     const uid=update.callback?.user?.user_id ?? update.message?.sender?.user_id ?? update.user?.user_id;
-    if(!Number.isSafeInteger(uid) || uid<=0 || update.message?.sender?.is_bot || update.message?.recipient?.chat_type && update.message.recipient.chat_type!=='dialog') return null;
+    if(!Number.isSafeInteger(uid) || uid<=0 || (!update.callback && update.message?.sender?.is_bot) || update.message?.recipient?.chat_type && update.message.recipient.chat_type!=='dialog') return null;
     const identity=update.callback?.callback_id || update.message?.body?.mid || `${update.update_type}:${uid}:${update.timestamp}`;
     const key=createHash('sha256').update(identity).digest('hex');
     const old=this.store.db.prepare('SELECT * FROM updates WHERE id=?').get(key);
@@ -63,7 +65,7 @@ export class Bot {
       u.botConnected=true;u.botUserId=uid;
       let action=update.callback?.payload || this.textAction(update.message?.body?.text || '/start',{...u,id});
       const command={'/start':'start','/help':'help','/result':'result','/next':'next','/edit':'edit','/delete':'delete','/stop':'stop','/life':'life'};
-      action=command[action] || action;
+      action=Object.hasOwn(command,action)?command[action]:action;
       let response;
       if(action==='begin' || action==='edit') {
         if(!u.consent) response=message('Демонстрация: отвечайте вымышленными данными. Сохраняются категории ответов и технический ID MAX для связи с приложением. Согласны?',[[button('Согласна, продолжить','consent')],[button('Назад','start')]]);
@@ -109,18 +111,25 @@ export class Bot {
       if(action.startsWith('remind:')) {
         const benefitId=action.slice(7);
         if(catalog.some(b=>b.id===benefitId)){
-          const current=this.store.ensure(id);current.settings.unfinished=true;this.store.save(id,current);
-          this.profiles.remind(id,{benefitId,dueAt:new Date(Date.now()+86400000).toISOString(),kind:'unfinished'},this.store.ensure(id).version);
-          response=message('Напомню через 24 часа. /stop - отключить уведомления.',[[button('Мои выплаты','result')]]);
+          const current=this.store.ensure(id);
+          if(current.reminders.filter(r=>!r.sentAt).length>=30) {
+            response=message('Достигнут лимит 30 напоминаний. Удалите ненужное напоминание в приложении и повторите.',[...this.app('Управлять напоминаниями','applications'),[button('Мои выплаты','result')]]);
+          } else {
+            current.settings.unfinished=true;this.store.save(id,current);
+            this.profiles.remind(id,{benefitId,dueAt:new Date(Date.now()+86400000).toISOString(),kind:'unfinished'},this.store.ensure(id).version);
+            response=message('Напомню через 24 часа. /stop - отключить уведомления.',[[button('Мои выплаты','result')]]);
+          }
         }
       }
       const result={userId:uid,callbackId:update.callback?.callback_id,message:response};
-      this.store.db.prepare('INSERT INTO updates(id,response,created) VALUES (?,?,?)').run(key,JSON.stringify(result),Date.now());
+      const deleted=action==='delete_confirm';
+      this.store.db.prepare('INSERT INTO updates(id,response,created,user_id,delivered) VALUES (?,?,?,?,?)').run(key,deleted?'null':JSON.stringify(result),Date.now(),deleted?null:id,deleted?1:0);
       return {...result,key};
     });
   }
   async deliver(result,client) {
     if(!result) return;
+    if(!this.store.db.prepare('SELECT id FROM updates WHERE id=?').get(result.key))return;
     try {await client.send(result.userId,result.message,result.callbackId);}
     catch(e){if(result.callbackId && [400,404,410].includes(e.status)) await client.send(result.userId,result.message);else throw e;}
     this.store.db.prepare('UPDATE updates SET delivered=1 WHERE id=?').run(result.key);

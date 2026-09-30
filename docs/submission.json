@@ -1,10 +1,13 @@
 {
-  "team": "",
+  "team": "МАМА рядом",
   "botUrl": "https://max.ru/t324_hakaton_max_bot",
   "apiUrl": "https://mama-ryadom-production.up.railway.app",
   "repositoryOrArchive": "https://github.com/TheDach/mama-ryadom",
-  "checksumOrCommit": "",
+  "checksumOrCommit": "source-sha256:8c059d992d1b93e4ae8d3b4b84e7758b75cc759c09faf3e6049d57c6c7d6462f",
   "access": "Вход через MAX. Отдельные логин и пароль не используются. Для локального демо доступна кнопка входа. Рабочие секреты предоставляются жюри отдельно.",
-  "verification": "/start, согласие, 6-7 шагов опроса, результат, ближайший шаг, мини-приложение, карточка, личная отметка",
-  "deploymentVerified": false
+  "verification": "/start, кнопка «Подобрать поддержку», согласие, 6-7 шагов, результат, ближайший шаг, мини-приложение, личная отметка и напоминание",
+  "deploymentVerified": false,
+  "version": "1.1.0",
+  "revision": "2026-09-30",
+  "checksumDescription": "source-sha256: SHA-256 состава исходников по scripts/checksum.js; MANIFEST.sha256 содержит отдельные суммы файлов. SHA-256 ZIP указывается при передаче архива."
 }

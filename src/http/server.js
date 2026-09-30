@@ -12,6 +12,10 @@ async function body(req) {
   try{return JSON.parse(Buffer.concat(parts).toString() || '{}');}catch{throw new Error('Некорректный JSON');}
 }
 const equal=(a,b)=>{const x=Buffer.from(a || ''),y=Buffer.from(b || '');return x.length===y.length && timingSafeEqual(x,y);};
+function fields(value,allowed) {
+  if(!value || typeof value!=='object' || Array.isArray(value) || Object.keys(value).some(k=>!allowed.includes(k)))throw new Error('Некорректные поля запроса');
+  return value;
+}
 export function createApp({config,store,profiles,bot,client}) {
   const rates=new Map();
   return createServer(async(req,res)=>{
@@ -35,7 +39,8 @@ export function createApp({config,store,profiles,bot,client}) {
         if(origin && origin!==new URL(config.publicUrl).origin)return json(res,403,{error:'Недопустимый источник запроса'});
         if(req.method==='GET' && path==='/api/config')return json(res,200,{demo:config.demo,questions,statusLabels});
         if(req.method==='POST' && path==='/api/auth'){
-          const b=await body(req);let id;
+          const b=fields(await body(req),['initData','demo']);let id;
+          if('demo' in b && typeof b.demo!=='boolean' || 'initData' in b && typeof b.initData!=='string')throw new Error('Некорректные параметры авторизации');
           if(b.initData){try{id='max:'+validateInitData(b.initData,config.token,config.initTtl);}catch(e){return json(res,401,{error:e.message});}}
           else if(config.demo && b.demo===true)id='demo:'+randomUUID();
           else return json(res,401,{error:'Откройте мини-приложение через бота MAX'});
@@ -52,7 +57,7 @@ export function createApp({config,store,profiles,bot,client}) {
           const b=await body(req);return json(res,200,profiles.update(id,b,b.version));
         }
         if(req.method==='PUT' && path.startsWith('/api/tracking/')){
-          const b=await body(req);if(!Number.isInteger(b.version))throw new Error('Укажите версию состояния');
+          const b=fields(await body(req),['status','version']);if(!Number.isInteger(b.version))throw new Error('Укажите версию состояния');
           return json(res,200,profiles.track(id,path.split('/').at(-1),b.status,b.version));
         }
         if(req.method==='POST' && path==='/api/reminders'){
@@ -62,11 +67,11 @@ export function createApp({config,store,profiles,bot,client}) {
         return json(res,404,{error:'Метод не найден'});
       }
       if(req.method!=='GET' && req.method!=='HEAD')return json(res,405,{error:'Метод не поддерживается'});
-      const files={'/questionnaire.js':['../src/domain/questionnaire.js','text/javascript'],'/app.js':['app.js','text/javascript'],'/styles.css':['styles.css','text/css'],'/favicon.svg':['favicon.svg','image/svg+xml']};
+      const files={'/questionnaire.js':['../src/domain/questionnaire.js','text/javascript'],'/app.js':['app.js','text/javascript'],'/styles.css':['styles.css','text/css'],'/logo.png':['logo.png','image/png'],'/favicon.svg':['logo.png','image/png']};
       const isRoute=path==='/' || /^\/(home|benefits|applications|profile|settings)(\/[-a-z0-9]+)?$/.test(path);
       const file=files[path] || (isRoute?['index.html','text/html']:null);
       if(!file)return json(res,404,{error:'Страница не найдена'});
-      const data=await readFile(publicDir+file[0]);res.writeHead(200,{'Content-Type':file[1]+'; charset=utf-8'});res.end(req.method==='HEAD'?undefined:data);
+      const data=await readFile(publicDir+file[0]);res.writeHead(200,{'Content-Type':file[1].startsWith('image/')?file[1]:file[1]+'; charset=utf-8'});res.end(req.method==='HEAD'?undefined:data);
     }catch(e){const status=e.status || (path==='/api/max/webhook'?503:400);if(status>=500)console.error('Запрос не выполнен',status);json(res,status,{error:status>=500?'Сервис временно недоступен. Повторите позже.':e.message});}
   });
 }
