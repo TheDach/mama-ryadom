@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "МАМА рядом API",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Демонстрационный навигатор. Реальных интеграций с ведомствами нет."
   },
   "servers": [
@@ -103,6 +103,24 @@
                 "regional_capital"
               ]
             }
+          },
+          "pregnancyWeeks": {
+            "type": "string",
+            "enum": [
+              "under12",
+              "12to29",
+              "30plus",
+              "unknown"
+            ]
+          },
+          "childAge": {
+            "type": "string",
+            "enum": [
+              "under6",
+              "6to12",
+              "12to18",
+              "unknown"
+            ]
           }
         },
         "required": [
@@ -392,6 +410,22 @@
           },
           "isManyChildren": {
             "type": "boolean"
+          },
+          "draft": {
+            "type": "object"
+          },
+          "questionnaire": {
+            "type": "boolean"
+          },
+          "questionnaireVersion": {
+            "type": "integer"
+          },
+          "questionIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "flow": {
+            "type": "string"
           }
         }
       },
@@ -459,6 +493,56 @@
             }
           }
         }
+      },
+      "QuestionnaireUpdate": {
+        "type": "object",
+        "required": [
+          "action",
+          "version"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "answer",
+              "back",
+              "select"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "flow": {
+            "type": "string"
+          },
+          "questionId": {
+            "type": "string"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              }
+            ]
+          },
+          "consent": {
+            "type": "boolean"
+          },
+          "restart": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "start открывает или продолжает опрос. answer сохраняет ответ и двигается дальше. select сохраняет несколько отметок без перехода. Для answer/back/select обязательны flow и questionId из текущего состояния. При последнем ответе возвращается questionnaire=false и готовая подборка."
       }
     }
   },
@@ -1162,6 +1246,93 @@
           },
           "503": {
             "description": "Доставка отложена; MAX должен повторить запрос"
+          }
+        }
+      }
+    },
+    "/api/questionnaire": {
+      "put": {
+        "summary": "Пошаговый опрос, общий для бота и мини-приложения",
+        "responses": {
+          "200": {
+            "description": "Успешно",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/State"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ошибка валидации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Нет авторизации",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Неверный Origin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Конфликт версии",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Слишком большой запрос",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Лимит запросов",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionnaireUpdate"
+              }
+            }
           }
         }
       }

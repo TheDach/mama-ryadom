@@ -11,6 +11,9 @@ export function configuration(env = process.env) {
   if (![c.port, c.initTtl, c.sessionTtl].every(x => Number.isInteger(x) && x > 0)) throw new Error('Некорректные числовые параметры окружения');
   if (!c.demo && (!c.token || !c.publicUrl.startsWith('https://'))) throw new Error('Для MAX нужны BOT_TOKEN и HTTPS PUBLIC_URL');
   if (c.botMode === 'webhook' && !/^[a-zA-Z0-9_-]{32,256}$/.test(c.webhookSecret)) throw new Error('WEBHOOK_SECRET: не менее 32 символов');
-  new URL(c.publicUrl); new URL(c.apiUrl);
+  const publicUrl=new URL(c.publicUrl);
+  if(publicUrl.pathname!=='/' || publicUrl.search || publicUrl.hash || publicUrl.username || publicUrl.password) throw new Error('PUBLIC_URL: нужен прямой адрес приложения без пути и параметров, например https://mama-ryadom-production.up.railway.app');
+  if(c.port>65535)throw new Error('PORT должен быть не больше 65535');
+  new URL(c.apiUrl);
   return c;
 }

@@ -5,3 +5,8 @@ var
 coverage
 *.zip
 
+.env.*
+!.env.example
+*.sqlite*
+test-results
+playwright-report

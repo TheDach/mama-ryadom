@@ -1,0 +1,35 @@
+name: Verify
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm test
+      - run: npm run api:check -- --local
+      - name: Build and check Docker
+        run: |
+          docker pull node:24.19.0-alpine
+          build_started=$(date +%s)
+          docker build -t mama-check .
+          build_elapsed=$(( $(date +%s) - build_started ))
+          test "$build_elapsed" -le 300
+          docker run -d --name mama-check -e DEMO_MODE=true mama-check
+          trap 'docker rm -f mama-check >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if docker exec mama-check node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then break; fi
+            sleep 1
+          done
+          docker exec mama-check node scripts/api-check.js http://127.0.0.1:3000 --demo
+          docker restart mama-check
+          for attempt in $(seq 1 30); do
+            if docker exec mama-check node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then break; fi
+            sleep 1
+          done
+          docker exec mama-check node scripts/api-check.js http://127.0.0.1:3000 --demo
